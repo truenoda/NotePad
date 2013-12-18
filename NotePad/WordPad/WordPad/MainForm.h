@@ -1215,7 +1215,19 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 				 }
 				 else
 				 {
-
+					 //开始记录后，但是依旧遇到了空格等特殊字符，且当时没有listbox显示，则重新进行记录
+					 if (TipBox->Enabled == false && TipBox->Visible == false)
+					 {
+						 int cursorPos = this->txtBoxMain->SelectionStart;
+						 if(cursorPos >= 1)
+						 {
+							 Char lastChar = text[cursorPos-1];
+							 if (lastChar == ' ' || lastChar == '\n' || lastChar == '\r' || lastChar == '.')
+							 {
+								 m_nIndex = cursorPos;
+							 }
+						 }
+					 }
 				 }
 				 if (m_nIndex < text->Length && m_nIndex >= 0)
 				 {
@@ -1241,7 +1253,7 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 							//移动位置
 							Point pos = this->txtBoxMain->GetPositionFromCharIndex(this->txtBoxMain->SelectionStart-1);
 							pos.X += 20;
-							pos.Y += 40;
+							pos.Y += 60;
 							TipBox->Location = pos;
 					 }
 					 else
@@ -1250,7 +1262,11 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 						 TipBox->Enabled = false;
 					 }
 				 }	
-
+				 else
+				 {
+					 TipBox->Hide();
+					 TipBox->Enabled = false;
+				 }
 			 }
 			 
 		 }
@@ -1267,6 +1283,16 @@ private: System::Void pressEnterOnTextBox(System::Object^  sender, System::Windo
 					 //不要继续换行了
 					 e->SuppressKeyPress = true;
 				 }
+			 }
+			 else if (e->KeyCode ==  Keys::Up)
+			 {
+				 if(TipBox->SelectedIndex > 0)
+					 TipBox->SelectedIndex--;
+			 }
+			 else if (e->KeyCode == Keys::Down)
+			 {
+				 if(TipBox->SelectedIndex < TipBox->Items->Count - 1)
+					 TipBox->SelectedIndex++;
 			 }
 		 }
 private: System::Void pressEnterOnTipBox(System::Object^  sender, System::Windows::Forms::KeyEventArgs^  e) {
