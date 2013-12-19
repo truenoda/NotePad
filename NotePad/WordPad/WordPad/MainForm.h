@@ -1198,6 +1198,7 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 			 if (m_bNeedProcessTextChanged)
 			 {
 				 String^ text = this->txtBoxMain->Text;
+				 bool needSetTipBox = true;
 				 if (m_nIndex == -1)
 				 {
 					 //如果没有开始记录，且当前位置之前是一个空格、换行\r、句号. 则开始记录
@@ -1207,7 +1208,7 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 					 else
 					 {
 						 Char lastChar = text[cursorPos-1];
-						 if (lastChar == ' ' || lastChar == '\n' || lastChar == '\r' || lastChar == '.')
+						 if (lastChar == ' ' || lastChar == '\n' || lastChar == '\r' || lastChar == '.' || lastChar == ',' || lastChar == ';')
 						 {
 							 m_nIndex = cursorPos;
 						 }
@@ -1218,55 +1219,24 @@ private: System::Void textChanged(System::Object^  sender, System::EventArgs^  e
 					 //开始记录后，但是依旧遇到了空格等特殊字符，且当时没有listbox显示，则重新进行记录
 					 if (TipBox->Enabled == false && TipBox->Visible == false)
 					 {
-						 int cursorPos = this->txtBoxMain->SelectionStart;
-						 if(cursorPos >= 1)
+						 //是不是真的没有匹配了
+						 needSetTipBox = !SetTipBox(); 
+						 if(needSetTipBox)
 						 {
-							 Char lastChar = text[cursorPos-1];
-							 if (lastChar == ' ' || lastChar == '\n' || lastChar == '\r' || lastChar == '.')
+							 int cursorPos = this->txtBoxMain->SelectionStart;
+							 if(cursorPos >= 1)
 							 {
-								 m_nIndex = cursorPos;
+								 Char lastChar = text[cursorPos-1];
+								 if (lastChar == ' ' || lastChar == '\n' || lastChar == '\r' || lastChar == '.' || lastChar == ',' || lastChar == ';')
+								 {
+									 m_nIndex = cursorPos;
+								 }
 							 }
-						 }
+						 }						 
 					 }
 				 }
-				 if (m_nIndex < text->Length && m_nIndex >= 0)
-				 {
-					 String^ testString = text->Substring(m_nIndex);
-					 TipBox->Items->Clear();
-					 TipBox->BeginUpdate();
-					 for (vector<String^>::iterator it=m_VDatabase.begin();it!=m_VDatabase.end();it++)
-					 {
-						 if(it->StartsWith(testString))
-						 {
-							 if(TipBox->Enabled == false && TipBox->Visible == false)
-							 {
-								 TipBox->Enabled = true;
-								 TipBox->Show();
-							 }					 
-							 TipBox->Items->Add(*it);
-						 }
-					 }
-					 TipBox->EndUpdate();
-					 if(TipBox->Items->Count > 0)
-					{
-							TipBox->SetSelected(0,true);
-							//移动位置
-							Point pos = this->txtBoxMain->GetPositionFromCharIndex(this->txtBoxMain->SelectionStart-1);
-							pos.X += 20;
-							pos.Y += 60;
-							TipBox->Location = pos;
-					 }
-					 else
-					 {
-						 TipBox->Hide();
-						 TipBox->Enabled = false;
-					 }
-				 }	
-				 else
-				 {
-					 TipBox->Hide();
-					 TipBox->Enabled = false;
-				 }
+				 if(needSetTipBox)
+					SetTipBox();
 			 }
 			 
 		 }
@@ -1299,6 +1269,56 @@ private: System::Void pressEnterOnTipBox(System::Object^  sender, System::Window
 			 AddSelectString();
 		 }
 
+		 bool SetTipBox()
+		 {
+			 String^ text = this->txtBoxMain->Text;
+			 if (m_nIndex < text->Length && m_nIndex >= 0)
+			 {
+				 String^ testString = text->Substring(m_nIndex);
+				 TipBox->Items->Clear();
+				 TipBox->BeginUpdate();
+				 for (vector<String^>::iterator it=m_VDatabase.begin();it!=m_VDatabase.end();it++)
+				 {
+					 String^ matchString = *it;
+					 matchString->ToUpper();
+					 if(matchString->StartsWith(testString->ToUpper()))
+					 {
+						 if(TipBox->Enabled == false && TipBox->Visible == false)
+						 {
+							 TipBox->Enabled = true;
+							 TipBox->Show();
+						 }					 
+						 TipBox->Items->Add(*it);
+					 }
+				 }
+				 TipBox->EndUpdate();
+				 if(TipBox->Items->Count > 0)
+				 {
+					 TipBox->SetSelected(0,true);
+					 //移动位置
+					 Point pos = this->txtBoxMain->GetPositionFromCharIndex(this->txtBoxMain->SelectionStart-1);
+					 pos.X += 20;
+					 pos.Y += 60;
+					 TipBox->Location = pos;
+					 return true;
+				 }
+				 else
+				 {
+					 TipBox->Hide();
+					 TipBox->Enabled = false;
+					 return false;
+				 }
+			 }	
+			 else
+			 {
+				 if(m_nIndex >= text->Length)
+					 m_nIndex = this->txtBoxMain->SelectionStart;
+				 TipBox->Hide();
+				 TipBox->Enabled = false;
+				 return false;
+			 }
+		 }
+
 		 void AddSelectString()
 		 {
 			 if (m_nIndex < this->txtBoxMain->Text->Length)
@@ -1314,7 +1334,14 @@ private: System::Void pressEnterOnTipBox(System::Object^  sender, System::Window
 				 m_bNeedProcessTextChanged = true;
 
 				 //重置记录器
-				 m_nIndex = -1;
+				 //m_nIndex = -1;
+
+				 //指向要修改的文本变量
+				 Int32 flag = TipBox->SelectedItem->ToString()->IndexOf("$",0);
+				 if (flag != -1)
+				 {
+					 Int32 tail = TipBox->SelectedItem->ToString()->IndexOf(" ",flag);
+				 }
 
 				 TipBox->Enabled = false;
 				 TipBox->Hide();
